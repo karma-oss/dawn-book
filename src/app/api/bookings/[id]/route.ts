@@ -7,10 +7,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { data: staff } = await supabase
+    .from('staff')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+  if (!staff) return NextResponse.json({ error: 'No staff' }, { status: 403 })
+
   const body = await request.json()
   const { data, error } = await supabase.from('bookings')
     .update({ status: body.status, start_at: body.start_at, end_at: body.end_at, notes: body.notes })
-    .eq('id', id).select().single()
+    .eq('id', id)
+    .eq('organization_id', staff.organization_id)
+    .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
